@@ -120,6 +120,47 @@ class TasksCase:
 
         self.autoretry_task = autoretry_task
 
+        @self.app.task(bind=True, autoretry_for=(ZeroDivisionError,),
+                       retry_backoff=True, shared=False)
+        def autoretry_backoff_task(self, a, b):
+            self.iterations += 1
+            return a / b
+
+        self.autoretry_backoff_task = autoretry_backoff_task
+
+        @self.app.task(bind=True, autoretry_for=(ZeroDivisionError,),
+                       retry_backoff=2, shared=False)
+        def autoretry_backoff_number_task(self, a, b):
+            self.iterations += 1
+            return a / b
+
+        self.autoretry_backoff_number_task = autoretry_backoff_number_task
+
+        @self.app.task(bind=True, autoretry_for=(ZeroDivisionError,),
+                       retry_backoff=True, retry_jitter=True, shared=False)
+        def autoretry_jitter_task(self, a, b):
+            self.iterations += 1
+            return a / b
+
+        self.autoretry_jitter_task = autoretry_jitter_task
+
+        @self.app.task(bind=True, autoretry_for=(ZeroDivisionError,),
+                       retry_backoff=True, retry_jitter=0.5, shared=False)
+        def autoretry_jitter_number_task(self, a, b):
+            self.iterations += 1
+            return a / b
+
+        self.autoretry_jitter_number_task = autoretry_jitter_number_task
+
+        @self.app.task(bind=True, autoretry_for=(ZeroDivisionError,),
+                       retry_backoff=True, retry_kwargs={'countdown': 5},
+                       shared=False)
+        def autoretry_invalid_backoff_task(self, a, b):
+            self.iterations += 1
+            return a / b
+
+        self.autoretry_invalid_backoff_task = autoretry_invalid_backoff_task
+
         @self.app.task(bind=True)
         def task_check_request_context(self):
             assert self.request.hostname == socket.gethostname()
@@ -251,6 +292,9 @@ class test_task_retries(TasksCase):
         self.autoretry_task.apply((1, 0))
         assert self.autoretry_task.iterations == 6
 
+    def test_autoretry_backoff(self):
+        # What do I do here?
+        pass
 
 class test_canvas_utils(TasksCase):
 

@@ -705,7 +705,7 @@ Sometimes you just want to retry a task whenever a particular exception
 is raised.
 
 Fortunately, you can tell Celery to automatically retry a task using
-`autoretry_for` argument in `~@Celery.task` decorator:
+`autoretry_for` argument in :meth:`~@Celery.task` decorator:
 
 .. code-block:: python
 
@@ -715,8 +715,8 @@ Fortunately, you can tell Celery to automatically retry a task using
     def refresh_timeline(user):
         return twitter.refresh_timeline(user)
 
-If you want to specify custom arguments for internal `~@Task.retry`
-call, pass `retry_kwargs` argument to `~@Celery.task` decorator:
+If you want to specify custom arguments for internal :meth:`~@Task.retry`
+call, pass `retry_kwargs` argument to :meth:`~@Celery.task` decorator:
 
 .. code-block:: python
 
@@ -745,6 +745,8 @@ If you want to automatically retry on any error, simply use:
     @app.task(autoretry_for=(Exception,))
     def x():
         ...
+
+You can also do exponential backoff using the `retry_backoff` argument.
 
 .. _task-options:
 
@@ -1739,12 +1741,12 @@ There's a race condition if the task starts executing
 before the transaction has been committed; The database object doesn't exist
 yet!
 
-The solution is to use the ``on_commit`` callback to launch your celery task 
+The solution is to use the ``on_commit`` callback to launch your celery task
 once all transactions have been committed successfully.
 
 .. code-block:: python
     from django.db.transaction import on_commit
-    
+
     def create_article(request):
         article = Article.objects.create()
         on_commit(lambda: expand_abbreviations.delay(article.pk))
@@ -1760,7 +1762,7 @@ once all transactions have been committed successfully.
     However, enabling ``ATOMIC_REQUESTS`` on the database
     connection will bring back the transaction-per-request model and the
     race condition along with it. In this case, the simple solution is
-    using the ``on_commit`` callback to launch your task after all 
+    using the ``on_commit`` callback to launch your task after all
     transactions are completed.
 
 .. _task-example:

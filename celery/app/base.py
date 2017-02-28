@@ -3,6 +3,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import os
+import random
 import threading
 import warnings
 
@@ -26,7 +27,9 @@ from celery._state import (
     get_current_worker_task, connect_on_app_finalize,
     _announce_app_finalized,
 )
-from celery.exceptions import AlwaysEagerIgnored, ImproperlyConfigured
+from celery.exceptions import (
+    AlwaysEagerIgnored, ImproperlyConfigured, InvalidTaskError
+)
 from celery.five import (
     UserDict, bytes_if_py2, python_2_unicode_compatible, values,
 )
@@ -462,7 +465,18 @@ class Celery(object):
             task.bind(self)  # connects task to this app
 
             autoretry_for = tuple(options.get('autoretry_for', ()))
+            retry_backoff = options.get('retry_backoff', None)
+            if retry_backoff is True:
+                retry_backoff = 1
+            retry_jitter = options.get('retry_jitter', None)
+            if retry_jitter is True:
+                retry_jitter = 0.1
+
             retry_kwargs = options.get('retry_kwargs', {})
+            if retry_backoff and 'countdown' in retry_kwargs:
+                raise InvalidTaskError(
+                    'cannot specify retry_backoff and countdown simultaneously'
+                )
 
             if autoretry_for and not hasattr(task, '_orig_run'):
 
@@ -471,6 +485,15 @@ class Celery(object):
                     try:
                         return task._orig_run(*args, **kwargs)
                     except autoretry_for as exc:
+                        if retry_backoff:
+                            countdown = retry_backoff * (2 ** task.retries)
+                            if retry_jitter:
+                                countdown += random.uniform(
+                                    -1 * retry_jitter,
+                                    retry_jitter
+                                )
+                            # countdown can never be less than zero
+                            retry_kwargs["countdown"] = max(countdown, 0)
                         raise task.retry(exc=exc, **retry_kwargs)
 
                 task._orig_run, task.run = task.run, run
